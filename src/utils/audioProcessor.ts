@@ -5,6 +5,7 @@ import coreURL from '@ffmpeg/core?url';
 import wasmURL from '@ffmpeg/core/wasm?url';
 
 let ffmpegInstance: FFmpeg | null = null;
+const bitrate = '192k';
 
 async function getFFmpegInstance(): Promise<FFmpeg> {
   if (!ffmpegInstance) {
@@ -52,16 +53,11 @@ export const processAudios = async (audio1Blob: Blob, audio2Blob: Blob): Promise
   const tempFiles = ['input1.mp3', 'input2.mp3', 'trimmed1.mp3', 'trimmed2.mp3', 'output.mp3'];
   
   try {
-    // Write the input files
-    try {
-      await Promise.all([
-        ffmpeg.writeFile('input1.mp3', await fetchFile(audio1Blob)),
-        ffmpeg.writeFile('input2.mp3', await fetchFile(audio2Blob))
-      ]);
-      console.log('Input files written successfully');
-    } catch (error: any) {
-      throw new Error(`Failed to write input files: ${error.message || 'Unknown error'}`);
-    }
+    await Promise.all([
+      ffmpeg.writeFile('input1.mp3', await fetchFile(audio1Blob)),
+      ffmpeg.writeFile('input2.mp3', await fetchFile(audio2Blob))
+    ]);
+    console.log('Input files written successfully');
 
     // Get audio durations
     const durations = await Promise.all([getDuration(audio1Blob), getDuration(audio2Blob)]);
@@ -77,11 +73,17 @@ export const processAudios = async (audio1Blob: Blob, audio2Blob: Blob): Promise
         '-i', 'input1.mp3',
         '-ss', `${durations[0] - shorterDuration}`,
         '-t', `${shorterDuration}`,
+        '-ac', '1',
+        '-y',
         'trimmed1.mp3'
       ]);
     } else {
       console.log('Copying audio1...');
-      await ffmpeg.exec(['-i', 'input1.mp3', '-c', 'copy', 'trimmed1.mp3']);
+      await ffmpeg.exec([
+        '-i', 'input1.mp3',
+        '-ac', '1',
+        '-y',
+        'trimmed1.mp3']);
     }
 
     if (durations[1] > durations[0]) {
@@ -90,11 +92,17 @@ export const processAudios = async (audio1Blob: Blob, audio2Blob: Blob): Promise
         '-i', 'input2.mp3',
         '-ss', `${durations[1] - shorterDuration}`,
         '-t', `${shorterDuration}`,
+        '-ac', '1',
+        '-y',
         'trimmed2.mp3'
       ]);
     } else {
       console.log('Copying audio2...');
-      await ffmpeg.exec(['-i', 'input2.mp3', '-c', 'copy', 'trimmed2.mp3']);
+      await ffmpeg.exec([
+        '-i', 'input2.mp3',
+        '-ac', '1',
+        '-y',
+        'trimmed2.mp3']);
     }
 
     // Mix the two audio files with compression
@@ -102,10 +110,12 @@ export const processAudios = async (audio1Blob: Blob, audio2Blob: Blob): Promise
     await ffmpeg.exec([
       '-i', 'trimmed1.mp3',
       '-i', 'trimmed2.mp3',
-      '-filter_complex', 'amix=inputs=2:duration=longest',
+      '-filter_complex', '[0:a][1:a]amerge=inputs=2[stereo]',
+      '-map', '[stereo]',
+      '-ac', '2',
       '-c:a', 'libmp3lame',
-      '-q:a', '2',           // Set quality (0-9, lower is better, 2 is high quality)
-      '-b:a', '192k',        // Set bitrate
+      '-b:a', bitrate,
+      '-y',
       'output.mp3'
     ]);
 
@@ -122,5 +132,5 @@ export const processAudios = async (audio1Blob: Blob, audio2Blob: Blob): Promise
   }
 };
 
-// https://cdn.pixabay.com/audio/2024/12/06/audio_1591e77ccc.mp3
-// https://cdn.pixabay.com/audio/2023/08/26/audio_a6ee15a317.mp3
+// https://cdn.pixabay.com/audio/2025/02/02/audio_12e1af2425.mp3
+// https://cdn.pixabay.com/audio/2023/01/09/audio_baaa3cfec7.mp3
