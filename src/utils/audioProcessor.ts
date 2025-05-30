@@ -1,9 +1,6 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile } from '@ffmpeg/util';
 
-import coreURL from '@ffmpeg/core?url';
-import wasmURL from '@ffmpeg/core/wasm?url';
-
 let ffmpegInstance: FFmpeg | null = null;
 const bitrate = '192k';
 
@@ -11,10 +8,7 @@ async function getFFmpegInstance(): Promise<FFmpeg> {
   if (!ffmpegInstance) {
     console.log('Initializing FFmpeg...');
     ffmpegInstance = new FFmpeg();
-    await ffmpegInstance.load({
-      coreURL,
-      wasmURL
-    });
+    await ffmpegInstance.load();
     console.log('FFmpeg loaded successfully');
   }
   return ffmpegInstance;
@@ -34,19 +28,6 @@ async function getDuration(audioBlob: Blob): Promise<number> {
   const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
   return audioBuffer.duration;
 }
-
-export const urlToBlob = async (url: string): Promise<Blob> => {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch audio: ${response.statusText}`);
-    }
-    return await response.blob();
-  } catch (error) {
-    console.error('Error converting URL to blob:', error);
-    throw error;
-  }
-};
 
 export const processAudios = async (audio1Blob: Blob, audio2Blob: Blob): Promise<Blob> => {
   const ffmpeg = await getFFmpegInstance();
@@ -131,6 +112,3 @@ export const processAudios = async (audio1Blob: Blob, audio2Blob: Blob): Promise
     await cleanupFiles(ffmpeg, tempFiles);
   }
 };
-
-// https://cdn.pixabay.com/audio/2025/02/02/audio_12e1af2425.mp3
-// https://cdn.pixabay.com/audio/2023/01/09/audio_baaa3cfec7.mp3

@@ -1,10 +1,23 @@
 import { useState } from 'react'
-import { urlToBlob, processAudios } from './utils/audioProcessor'
+import { processAudios } from './utils/audioProcessor'
 import './App.css'
 
+const urlToBlob = async (url: string): Promise<Blob> => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch audio: ${response.statusText}`);
+    }
+    return await response.blob();
+  } catch (error) {
+    console.error('Error converting URL to blob:', error);
+    throw error;
+  }
+};
+
 function App() {
-  const [audio1Url, setAudio1Url] = useState('')
-  const [audio2Url, setAudio2Url] = useState('')
+  const [audio1Url, setAudio1Url] = useState('https://cdn.pixabay.com/audio/2025/02/02/audio_12e1af2425.mp3')
+  const [audio2Url, setAudio2Url] = useState('https://cdn.pixabay.com/audio/2023/01/09/audio_baaa3cfec7.mp3')
   const [isProcessing, setIsProcessing] = useState(false)
   const [resultUrl, setResultUrl] = useState('')
   const [error, setError] = useState<string | null>(null)
